@@ -1,0 +1,2 @@
+vector_db/** filter=lfs diff=lfs merge=lfs -text
+workspace/knowledge_base/** filter=lfs diff=lfs merge=lfs -text

@@ -2,64 +2,159 @@ import json
 import re
 from core.llm import LLM
 from core.model_manager import best_model
-from core.registry import list_tools
 
 class Planner:
+
     def __init__(self):
         self.llm = LLM(model=best_model())
 
     def plan(self, request):
-        user = request.lower().strip()
-
-        # 1. Dynamically load all available tools from plugins
-        available_tools = ""
-        for name, tool_obj in list_tools().items():
-            available_tools += f"- {name}: {tool_obj.description}\n"
 
         prompt = f"""
 You are the planning brain of SPOIL.
+
 Return ONLY ONE valid JSON object.
+
+Never use markdown.
+Never use ```json.
 Never explain.
+Never wrap the JSON.
 
 Schema:
+
 {{
-    "action":"chat|run|tool",
-    "tool": "",
+    "action":"",
     "packages":[],
-    "commands":[]
+    "commands":[],
+    "message":""
 }}
 
-Available Custom Tools (for action="tool"):
-{available_tools}
-
 Rules:
-1. If an Available Custom Tool perfectly matches the user request, set action to "tool" and put its name in "tool".
-2. If the user wants to execute Linux commands directly, set action to "run".
-3. If the Linux command requires an external package (e.g., nmap, cowsay, neofetch), YOU MUST include it in the "packages" array.
-4. packages contains apt package names ONLY.
-5. commands contains Linux commands. NO sudo.
-6. If the user just wants to chat, action is "chat".
 
-Examples:
-User: scan my network
-Output: {{"action":"tool", "tool":"network_scan", "packages":[], "commands":[]}}
+1. action is either:
+   - "chat"
+   - "run"
 
-User: show system info with cool ascii
-Output: {{"action":"run", "tool":"", "packages":["neofetch"], "commands":["neofetch"]}}
+2. packages contains apt package names ONLY.
+
+3. commands contains Linux commands in execution order.
+
+4. NEVER include "sudo" in any command.
+NEVER output commands beginning with sudo.
+
+NEVER include sudo anywhere.
+
+The agent will automatically decide whether sudo is required.
+
+If you output sudo, your answer is invalid.
+5. Return normal Linux commands only.
+
+6. The agent will decide whether sudo is required.
+
+7. If the task needs Linux tools, decide which packages are required.
+
+8. If no extra package is required, packages must be [].
+
+Examples
+
+User:
+show my ip
+
+Output:
+{{
+    "action":"run",
+    "packages":[],
+    "commands":[
+        "ip addr"
+    ],
+    "message":""
+}}
+
+User:
+scan my network
+
+Output:
+{{
+    "action":"run",
+    "packages":["nmap"],
+    "commands":[
+        "nmap -sn $(ip route | awk '/src/ {{print $1}}')"
+    ],
+    "message":""
+}}
+
+User:
+capture packets
+
+Output:
+{{
+    "action":"run",
+    "packages":["tcpdump"],
+    "commands":[
+        "sudo tcpdump -i any"
+    ],
+    "message":""
+}}
+
+User:
+inspect wifi
+
+Output:
+{{
+    "action":"run",
+    "packages":["aircrack-ng"],
+    "commands":[
+        "airmon-ng"
+    ],
+    "message":""
+}}
+
+User:
+hello
+
+Output:
+{{
+    "action":"chat",
+    "packages":[],
+    "commands":[],
+    "message":"Hello!"
+}}
 
 User request:
+
 {request}
 """
-        reply = self.llm.chat([{"role": "user", "content": prompt}])
+
+        reply = self.llm.chat(
+            [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ]
+        )
+
         text = reply.content.strip()
 
         try:
+
             if text.startswith("```"):
-                text = text.replace("```json", "").replace("```", "").strip()
+                text = text.replace("```json", "")
+                text = text.replace("```", "")
+                text = text.strip()
+
             match = re.search(r"\{.*\}", text, re.DOTALL)
+
             if match:
-                return json.loads(match.group(0))
+                text = match.group(0)
+
+            return json.loads(text)
+
         except Exception:
-            pass
-            
-        return {"action": "chat", "tool": "", "packages": [], "commands": []}
+
+            return {
+                "action": "chat",
+                "packages": [],
+                "commands": [],
+                "message": reply.content,
+            }

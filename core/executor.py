@@ -1,5 +1,4 @@
 from core.registry import get_tool
-from core.dependency import check_command, install_package
 
 
 class Executor:
@@ -13,19 +12,6 @@ class Executor:
                 "success": False,
                 "error": f"Unknown tool: {tool_name}"
             }
-
-        # Generic dependency handling
-        if getattr(tool, "requires", None):
-
-            if not check_command(tool.requires):
-
-                print(f"\nSPOIL needs '{tool.requires}'")
-
-                if not install_package(tool.requires):
-                    return {
-                        "success": False,
-                        "stderr": "Installation cancelled."
-                    }
 
         try:
             return tool.function(**kwargs)

@@ -8,6 +8,9 @@ from core.registry import tool
     description="Execute a Linux shell command and return stdout, stderr and exit code."
 )
 def run_command(command: str):
+    """
+    Execute a shell command.
+    """
 
     result = subprocess.run(
         command,
