@@ -1,6 +1,6 @@
 import shutil
 import subprocess
-
+from core.package_map import PACKAGE_MAP
 
 def check_command(command):
     """
@@ -8,80 +8,43 @@ def check_command(command):
     Example:
     nmap, git, tcpdump
     """
-
     return shutil.which(command) is not None
 
-
-
-def install_package(package):
+def install_package(command_name):
+    # Get actual apt package name from map, or fallback to command name
+    apt_package = PACKAGE_MAP.get(command_name, command_name)
 
     print()
-    print(f"SPOIL needs '{package}'")
+    print(f"SPOIL needs '{command_name}' (apt package: {apt_package})")
     print()
     print("Install command:")
-    print(f"sudo apt install {package} -y")
+    print(f"sudo apt install {apt_package} -y")
     print()
 
-
-    answer = input(
-        "Install now? (y/n): "
-    ).strip().lower()
-
+    answer = input("Install now? (y/n): ").strip().lower()
 
     if answer not in ["y", "yes"]:
-
-        print(
-            "Installation cancelled."
-        )
-
+        print("Installation cancelled.")
         return False
 
-
-
     print()
-    print(
-        f"Installing {package}..."
-    )
+    print(f"Installing {apt_package}...")
     print()
-
 
     try:
-
         result = subprocess.run(
-            [
-                "sudo",
-                "apt",
-                "install",
-                package,
-                "-y"
-            ]
+            ["sudo", "apt", "install", apt_package, "-y"]
         )
-
 
         if result.returncode == 0:
-
             print()
-            print(
-                f"{package} installed successfully."
-            )
-
+            print(f"{apt_package} installed successfully.")
             return True
-
-
         else:
-
             print()
-            print(
-                f"Failed installing {package}."
-            )
-
+            print(f"Failed installing {apt_package}.")
             return False
 
-
     except KeyboardInterrupt:
-
-        print(
-            "\nInstallation interrupted."
-        )
-
+        print("\nInstallation interrupted.")
         return False
