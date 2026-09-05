@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: spoil-ai
+Version: 1.0.2
+Summary: An autonomous Linux assistant that writes commands, installs missing dependencies, and executes tasks.
+Author: Dhanunjay Ram Yellapu
+Requires-Dist: openai
+Dynamic: author
+Dynamic: requires-dist
+Dynamic: summary

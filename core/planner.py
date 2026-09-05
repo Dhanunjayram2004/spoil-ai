@@ -1,14 +1,22 @@
 import json
 import re
 from core.llm import LLM
+<<<<<<< HEAD
 from core.model_manager import best_model
+=======
+from core.model_manager import best_model, installed_models
+from core.registry import list_tools
+>>>>>>> b1babbc (integrated rag pipeline)
 
 class Planner:
 
     def __init__(self):
-        self.llm = LLM(model=best_model())
+        models = installed_models()
+        fast_model = next((m for m in models if "1.5b" in m or "3b" in m or "4b" in m), best_model())
+        self.llm = LLM(model=fast_model)
 
     def plan(self, request):
+<<<<<<< HEAD
 
         prompt = f"""
 You are the planning brain of SPOIL.
@@ -134,7 +142,46 @@ User request:
             ]
         )
 
+=======
+        user = request.lower().strip()
+
+        # Smart Bypass - Skip the heavy AI entirely for basic greetings
+        fast_chat_words = ["hi", "hello", "hey", "who are you", "what's up", "help"]
+        if user in fast_chat_words:
+            return {"action": "chat", "tool": "", "packages": [], "commands": []}
+
+        available_tools = ""
+        for name, tool_obj in list_tools().items():
+            available_tools += f"- {name}: {tool_obj.description}\n"
+
+	# core/planner.py lo prompt ni ila optimize cheyandi
+	prompt = f"""
+	Route user request to JSON.
+	Schema: {{"action":"chat|run|tool", "tool":"", "packages":[], "commands":[]}}
+
+	Available Tools:
+	{available_tools}
+
+	Rules:
+	- Theory/Questions -> action: "chat"
+	- System actions (IP, files, scans) -> action: "run"
+	- Matching Custom Tool -> action: "tool"
+	- Commands must be valid Linux (no sudo).
+
+	User request: {request}
+	"""	
+        print("thinking...", end="\r", flush=True)
+
+        messages = [
+            {"role": "system", "content": "You are a JSON-only API. Output ONLY raw JSON. No conversational text. No markdown blocks."},
+            {"role": "user", "content": prompt}
+        ]
+
+        reply = self.llm.chat(messages, temperature=0.0)
+>>>>>>> b1babbc (integrated rag pipeline)
         text = reply.content.strip()
+
+        print(" " * 20, end="\r", flush=True)
 
         try:
 
@@ -151,6 +198,7 @@ User request:
             return json.loads(text)
 
         except Exception:
+<<<<<<< HEAD
 
             return {
                 "action": "chat",
@@ -158,3 +206,8 @@ User request:
                 "commands": [],
                 "message": reply.content,
             }
+=======
+            pass
+
+        return {"action": "chat", "tool": "", "packages": [], "commands": []}
+>>>>>>> b1babbc (integrated rag pipeline)
